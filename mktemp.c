@@ -53,6 +53,14 @@
 #define _PATH_TMP "/tmp"
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
+#include <winbase.h>
+#define _PATH_SEPARATOR '\\'
+#else
+#define _PATH_SEPARATOR '/'
+#endif
+
 #ifdef HAVE_PROGNAME
 extern char *__progname;
 #else
@@ -100,7 +108,7 @@ main(argc, argv)
 			break;
 		case 'p':
 			prefix = optarg;
-			tflag = 1;
+			Tflag = 1;
 			break;
 		case 'q':
 			quiet = 1;
@@ -138,7 +146,7 @@ main(argc, argv)
 	}
 
 	if (tflag) {
-		if (strchr(template, '/')) {
+		if (strchr(template, _PATH_SEPARATOR /*'/'*/)) {
 			if (!quiet)
 				(void)fprintf(stderr,
 				    "%s: template must not contain directory separators in -t mode\n", __progname);
@@ -146,12 +154,18 @@ main(argc, argv)
 		}
 
 		if (!Tflag) {
-			cp = getenv("TMPDIR");
+			char buff[MAX_PATH];
+			if(GetTempPath(MAX_PATH,buff)!=0)
+				cp=buff;
+			else			
+				cp = getenv("TMPDIR");			
 			if (cp != NULL && *cp != '\0')
 				prefix = cp;
+//			printf("TMPDIR is %s\n", cp);
 		}
+		 printf("prefix is %s\n", prefix);
 		plen = strlen(prefix);
-		while (plen != 0 && prefix[plen - 1] == '/')
+		while (plen != 0 && prefix[plen - 1] == _PATH_SEPARATOR /*'/'*/)
 			plen--;
 
 		tempfile = (char *)malloc(plen + 1 + strlen(template) + 1);
@@ -162,7 +176,7 @@ main(argc, argv)
 			exit(1);
 		}
 		(void)memcpy(tempfile, prefix, plen);
-		tempfile[plen] = '/';
+		tempfile[plen] = _PATH_SEPARATOR /*'/'*/;
 		(void)strcpy(tempfile + plen + 1, template);	/* SAFE */
 	} else {
 		if ((tempfile = strdup(template)) == NULL) {
